@@ -6,24 +6,24 @@ pygame.init()
 class CartPole:
     def __init__(self, w=600, h=400, fps=30, cart_acceleration=0.04):
         # General settings.
-        self.__w = w
-        self.__h = h
-        self.__fps = fps
+        self.w = w
+        self.h = h
+        self.fps = fps
         self.is_running = True
         self.is_render = True
-        self.__score = 0
-        self.__max_score = 0
-        self.__sc = pygame.display.set_mode((w, h))
+        self.score = 0
+        self.max_score = 0
+        self.sc = pygame.display.set_mode((w, h))
         pygame.display.set_caption('CartPole')
-        self.__clock = pygame.time.Clock()
+        self.clock = pygame.time.Clock()
         self.acceleration_time = 0
-        self.__font = pygame.font.SysFont('arial', 16)
+        self.font = pygame.font.SysFont('arial', 16)
 
         # The cart object.
         self.__cart_surf = pygame.Surface((60, 40))
         self.__cart_surf.fill((0, 0, 0))
         self.__cart_rect = self.__cart_surf.get_rect()
-        self.__cart_rect.center = (self.__w // 2, self.__h // 2 + 100)
+        self.__cart_rect.center = (self.w // 2, self.h // 2 + 100)
         self.__cart_acceleration = cart_acceleration
         self.__cart_speed = 0
         self.move_left = False
@@ -78,21 +78,21 @@ class CartPole:
         self.__rotated_pole_rect.center = self.__cart_rect.center
 
     def give_state(self):
-        return [(self.__cart_rect.centerx - self.__w // 2) / self.__w * 2, self.__cart_speed / 20,
+        return [(self.__cart_rect.centerx - self.w // 2) / self.w * 2, self.__cart_speed / 20,
                 (self.__angle - 180) / self.max_angle, self.__delta_angle / 3]
 
     def score_increment(self):
-        self.__score += 1
+        self.score += 1
 
     def lose(self):
-        if self.__cart_rect.right > self.__w or self.__cart_rect.left < 0 or self.__angle > 180 + self.max_angle or \
+        if self.__cart_rect.right > self.w or self.__cart_rect.left < 0 or self.__angle > 180 + self.max_angle or \
            self.__angle < 180 - self.max_angle:
-            if self.__score > self.__max_score:
-                self.__max_score = self.__score
-            self.__score = 0
+            if self.score > self.max_score:
+                self.max_score = self.score
+            self.score = 0
             self.acceleration_time = 0
             self.__angle = random.choice([175, 185])
-            self.__cart_rect.centerx = self.__w // 2
+            self.__cart_rect.centerx = self.w // 2
             reward = -1
             term = True
         else:
@@ -102,16 +102,16 @@ class CartPole:
 
     def render(self, step_counter, epsilon):
         if self.is_render:
-            self.__sc.fill((255, 255, 255))
-            pygame.draw.line(self.__sc, (0, 0, 0), (0, 300), (self.__w, 300), 1)
-            self.__sc.blit(self.__cart_surf, self.__cart_rect)
-            self.__sc.blit(self.__rotated_pole_surf, self.__rotated_pole_rect)
-            pygame.draw.circle(self.__sc, (0, 110, 200), self.__cart_rect.center, 8)
+            self.sc.fill((255, 255, 255))
+            pygame.draw.line(self.sc, (0, 0, 0), (0, 300), (self.w, 300), 1)
+            self.sc.blit(self.__cart_surf, self.__cart_rect)
+            self.sc.blit(self.__rotated_pole_surf, self.__rotated_pole_rect)
+            pygame.draw.circle(self.sc, (0, 110, 200), self.__cart_rect.center, 8)
 
-            self.__sc.blit(self.__font.render('Score: ' + str(self.__score), True, (0, 0, 0)), (15, 15))
-            self.__sc.blit(self.__font.render('Max score: ' + str(self.__max_score), True, (255, 0, 0)), (15, 40))
-            self.__sc.blit(self.__font.render('Step counter: ' + str(step_counter), True, (0, 0, 255)), (15, 65))
-            self.__sc.blit(self.__font.render('Epsilon: ' + str(epsilon)[:5], True, (0, 255, 0)), (15, 90))
+            self.sc.blit(self.font.render('Score: ' + str(self.score), True, (0, 0, 0)), (15, 15))
+            self.sc.blit(self.font.render('Max score: ' + str(self.max_score), True, (255, 0, 0)), (15, 40))
+            self.sc.blit(self.font.render('Step counter: ' + str(step_counter), True, (0, 0, 255)), (15, 65))
+            self.sc.blit(self.font.render('Epsilon: ' + str(epsilon)[:5], True, (0, 255, 0)), (15, 90))
 
             pygame.display.update()
-            self.__clock.tick(self.__fps)
+            self.clock.tick(self.fps)

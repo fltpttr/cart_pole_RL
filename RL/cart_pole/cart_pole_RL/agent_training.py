@@ -4,12 +4,17 @@ pygame.init()
 
 from cart_pole_environment import CartPole
 from agent_dqn import DQN
-
+from dueling_agent_dqn import DuelingDQN
+from dueling_PER_agent_dqn import DuelingPerDQN
 action = 0
 reward = 0
 term = False
 env = CartPole()
-agent_dqn = DQN()
+
+# agent_dqn = DQN(epsilon_step=0.00005, double_q=True, samples_num=1500)
+# agent_dqn = DuelingDQN(epsilon_step=0.0001, double_q=False)
+# agent_dqn = DuelingPerDQN(samples_num=3000, per=False, max_step=12000, rms_prop_step=0.0005)  # 500000
+agent_dqn = DuelingPerDQN(samples_num=2000, per=True, max_step=9000, rms_prop_step=0.0005)
 
 manual_control = False
 
@@ -30,8 +35,7 @@ while env.is_running:
                 env.acceleration_time = 0
             # Quit - key 'q'.
             elif event.key == pygame.K_q:
-                # env.is_running = False
-                pass
+                env.is_running = False
             # Switch to manual control.
             elif event.key == pygame.K_m:
                 manual_control = not manual_control
@@ -43,7 +47,7 @@ while env.is_running:
             elif event.key == pygame.K_a:
                 agent_dqn.epsilon -= 0.1
             elif event.key == pygame.K_d:
-                agent_dqn.epsilon += 0.1
+                agent_dqn.epsilon = 1
             # Render off/on - key 'v'.
             elif event.key == pygame.K_v:
                 env.is_render = not env.is_render
@@ -73,11 +77,9 @@ while env.is_running:
     agent_dqn.step_increment()
 
     # Train an agent if the experience array is full.
-    if agent_dqn.step_counter > agent_dqn.samples_num and agent_dqn.epsilon >= agent_dqn.min_epsilon:
+    if agent_dqn.step_counter > agent_dqn.samples_num and agent_dqn.step_counter <= agent_dqn.max_step:
         agent_dqn.train_step()
         agent_dqn.epsilon_decrement()
-    if agent_dqn.epsilon <= agent_dqn.min_epsilon:
-        agent_dqn.epsilon = 0
 
     env.render(agent_dqn.step_counter, agent_dqn.epsilon)
 
