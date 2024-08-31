@@ -33,9 +33,9 @@ class DuelingDeepQNetwork(Model):
 
 
 class DuelingPerDQN:
-    def __init__(self, samples_num=3000, gamma=0.95, epsilon=1, epsilon_step=0.002, epsilon_x=1, max_step=20000,
-                 rms_prop_step=0.001, batch_size=32, model_target_update_step=15, double_q=True, polyak_averaging=True,
-                 tau=0.1, per=True):
+    def __init__(self, samples_num=3000, gamma=0.95, hidden1=64, hidden2=64, epsilon=1,
+                 epsilon_step=0.001, epsilon_x=1, max_step=6000, rms_prop_step=0.0007, batch_size=32,
+                 model_target_update_step=15, double_q=True, polyak_averaging=True, tau=0.05, per=True):
         self.epsilon = epsilon
         self.epsilon_x = epsilon_x
         self.epsilon_step = epsilon_step
@@ -55,13 +55,12 @@ class DuelingPerDQN:
         self.per = per
         self.sample_priority = np.zeros(shape=samples_num, dtype='float64')
         self.sample_probability = np.zeros(shape=samples_num, dtype='float64')
-        # self.sample_weight = np.ones(shape=self.samples_num, dtype='float32')
         self.sample_weight = None
         self.alpha = 0.5
         self.beta = 0.1
 
-        self.model = DuelingDeepQNetwork(64, 64)
-        self.model_target = DuelingDeepQNetwork(64, 64)
+        self.model = DuelingDeepQNetwork(hidden1, hidden2)
+        self.model_target = DuelingDeepQNetwork(hidden1, hidden2)
         self.model.compile(loss=Huber(), optimizer=keras.optimizers.RMSprop(learning_rate=rms_prop_step))
         self.model_target.compile(loss=Huber(), optimizer=keras.optimizers.RMSprop(learning_rate=rms_prop_step))
         self.model_target.set_weights(self.model.get_weights())
@@ -157,12 +156,14 @@ class DuelingPerDQN:
     def step_increment(self):
         self.step_counter += 1
 
-    def epsilon_decrement(self):
-        if self.step_counter <= self.max_step:
-            self.epsilon = (np.sin(self.epsilon_x) + 1) / 2
-            self.epsilon_x += self.epsilon_step
-            if self.step_counter == self.max_step:
-                self.epsilon = 0
+    def epsilon_decrement(self, score, max_score):
+        self.epsilon = (np.sin(self.epsilon_x) + 1) / 2
+        self.epsilon_x += self.epsilon_step
+        if score > 650:
+            self.max_step = self.step_counter - 1
+            self.epsilon = 0
+        if self.max_step == self.step_counter and max_score < 650:
+            self.max_step += 1000
 
     def train_step(self):
         # Take random batch. PER or not.

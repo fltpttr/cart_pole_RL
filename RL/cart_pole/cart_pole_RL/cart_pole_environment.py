@@ -78,7 +78,7 @@ class CartPole:
         self.__rotated_pole_rect.center = self.__cart_rect.center
 
     def give_state(self):
-        return [(self.__cart_rect.centerx - self.w // 2) / self.w * 2, self.__cart_speed / 20,
+        return [(self.__cart_rect.centerx - self.w // 2) / self.w * 6, self.__cart_speed / 10,
                 (self.__angle - 180) / self.max_angle, self.__delta_angle / 3]
 
     def score_increment(self):
@@ -95,12 +95,14 @@ class CartPole:
             self.__cart_rect.centerx = self.w // 2
             reward = -1
             term = True
+            if self.__cart_rect.right > self.w or self.__cart_rect.left < 0:
+                reward = -3
         else:
             reward = 0.1
             term = False
         return reward, term
 
-    def render(self, step_counter, epsilon):
+    def render(self, step_counter, epsilon, max_step):
         if self.is_render:
             self.sc.fill((255, 255, 255))
             pygame.draw.line(self.sc, (0, 0, 0), (0, 300), (self.w, 300), 1)
@@ -112,6 +114,7 @@ class CartPole:
             self.sc.blit(self.font.render('Max score: ' + str(self.max_score), True, (255, 0, 0)), (15, 40))
             self.sc.blit(self.font.render('Step counter: ' + str(step_counter), True, (0, 0, 255)), (15, 65))
             self.sc.blit(self.font.render('Epsilon: ' + str(epsilon)[:5], True, (0, 255, 0)), (15, 90))
+            self.sc.blit(self.font.render('Max step: ' + str(max_step), True, (255, 0, 0)), (15, 115))
 
             pygame.display.update()
             self.clock.tick(self.fps)
