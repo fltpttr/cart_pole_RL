@@ -3,26 +3,20 @@ import pygame
 pygame.init()
 
 from cart_pole_environment import CartPole
-from agent_dqn import DQN
-from dueling_PER_agent_dqn import DuelingPerDQN
+from cart_pole_agent_dqn import DQN
+from cart_pole_dueling_PER_agent_dqn import DuelingPerDQN
 
 action = 0
 reward = 0
 term = False
 env = CartPole()
 
-# agent_dqn = DQN()
-agent_dqn = DuelingPerDQN()
+# agent_dqn = DQN(epsilon_step=0.0001)
+agent_dqn = DuelingPerDQN(epsilon_step=0.00015, per=True)
 
 manual_control = False
 
 while env.is_running:
-    # Start training again if the agent could not achieve a good result in 10,000 steps.
-    if agent_dqn.max_step > 9000:
-        env = CartPole()
-        agent_dqn = DuelingPerDQN()
-
-    # Manual control.
     for event in pygame.event.get():
         # Quit.
         if event.type == pygame.QUIT:
@@ -48,13 +42,9 @@ while env.is_running:
                 break
             # Epsilon manual control - keys 'a' and 'd'.
             elif event.key == pygame.K_a:
-                agent_dqn.max_step -= 1000
-                if agent_dqn.max_step < agent_dqn.step_counter:
-                    agent_dqn.epsilon = 0
+                agent_dqn.epsilon -= 0.1
             elif event.key == pygame.K_d:
-                if agent_dqn.max_step < agent_dqn.step_counter:
-                    agent_dqn.max_step = agent_dqn.step_counter
-                agent_dqn.max_step += 1000
+                agent_dqn.epsilon += 0.1
             # Render off/on - key 'v'.
             elif event.key == pygame.K_v:
                 env.is_render = not env.is_render
@@ -82,12 +72,8 @@ while env.is_running:
     reward, term = env.lose()
     agent_dqn.save_reward(reward)
     agent_dqn.step_increment()
+    agent_dqn.train_step()
 
-    # Train an agent if the experience array is full.
-    if agent_dqn.step_counter > agent_dqn.samples_num and agent_dqn.step_counter <= agent_dqn.max_step:
-        agent_dqn.train_step()
-        agent_dqn.epsilon_decrement(env.score, env.max_score)
-
-    env.render(agent_dqn.step_counter, agent_dqn.epsilon, agent_dqn.max_step)
+    env.render(agent_dqn.step_counter, agent_dqn.epsilon)
 
 pygame.quit()

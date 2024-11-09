@@ -7,17 +7,14 @@ from keras.layers import Input, Dense
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class DQN:
-    def __init__(self, samples_num=3000, epsilon=1, gamma=0.95, epsilon_step=0.001, epsilon_x=1, max_step=6000,
-                 hidden1=64, hidden2=64, rms_prop_step=0.0005, batch_size=32, model_target_update_step=15,
-                 double_q=True):
+    def __init__(self, samples_num=3000, epsilon=1, gamma=0.95, epsilon_step=0.00002, hidden1=64, hidden2=64,
+                 rms_prop_step=0.0005, batch_size=64, model_target_update_step=20, double_q=False):
         self.epsilon = epsilon
-        self.epsilon_x = epsilon_x
         self.epsilon_step = epsilon_step
         self.gamma = gamma
         self.samples_num = samples_num
         self.batch_size = batch_size
         self.step_counter = 0
-        self.max_step = max_step
         self.action = 0
 
         # Reply buffer.
@@ -65,6 +62,9 @@ class DQN:
                 self.states[-1][3] = 0
             self.td_targets = np.roll(self.td_targets, -1, axis=0)
 
+    def epsilon_decrement(self):
+        self.epsilon -= self.epsilon_step
+
     def choosing_action(self):
         # Epsilon-greedy strategy.
         if np.random.rand() > self.epsilon and self.step_counter > self.samples_num:
@@ -72,6 +72,9 @@ class DQN:
         else:
             if self.step_counter % 5 == 0:
                 self.action = np.random.randint(0, 2)
+
+        if self.step_counter > self.samples_num:
+            self.epsilon_decrement()
 
         # Save action.
         if self.step_counter < self.samples_num:
@@ -98,38 +101,32 @@ class DQN:
     def step_increment(self):
         self.step_counter += 1
 
-    def epsilon_decrement(self, score, max_score):
-        self.epsilon = (np.sin(self.epsilon_x) + 1) / 2
-        self.epsilon_x += self.epsilon_step
-        if score > 650:
-            self.max_step = self.step_counter - 1
-            self.epsilon = 0
-        if self.max_step == self.step_counter and max_score < 650:
-            self.max_step += 1000
-
     def train_step(self):
-        # Take random batch.
-        random_indxs = np.random.choice(np.arange(0, self.samples_num - 1), size=self.batch_size, replace=False)
+        if self.step_counter > self.samples_num and self.epsilon > 0:
+            # Take random batch.
+            random_indxs = np.random.choice(np.arange(0, self.samples_num - 1), size=self.batch_size, replace=False)
 
-        # Q - values.
-        self.td_targets[random_indxs] = self.model_target.predict(self.states[random_indxs], verbose=0)
+            # Q - values.
+            self.td_targets[random_indxs] = self.model_target(self.states[random_indxs]) * (1 - np.vstack(
+                (self.terms[random_indxs], self.terms[random_indxs])).T)
 
-        # Double Q-learning or not.
-        if self.double_q:
-            actions_indxs = np.argmax(self.model(self.states[random_indxs + 1]), axis=1)
-            self.td_targets[random_indxs, self.actions[random_indxs]] = self.rewards[random_indxs] + self.gamma * \
-                 self.model_target(self.states[random_indxs + 1]).numpy()[np.arange(self.batch_size), actions_indxs] * \
-                                  (1 - self.terms[random_indxs + 1])
-        else:
-            self.td_targets[random_indxs, self.actions[random_indxs]] = self.rewards[random_indxs] + \
-                self.gamma * np.max(self.model_target.predict(self.states[random_indxs + 1], verbose=0), axis=1) * \
-                (1 - self.terms[random_indxs + 1])
+            # Double Q-learning or not.
+            if self.double_q:
+                actions_indxs = np.argmax(self.model(self.states[random_indxs + 1]), axis=1)
+                self.td_targets[random_indxs, self.actions[random_indxs]] = self.rewards[random_indxs] + self.gamma * \
+                     self.model_target(self.states[random_indxs + 1]).numpy()[np.arange(self.batch_size), actions_indxs] * \
+                                      (1 - self.terms[random_indxs + 1])
+            else:
+                self.td_targets[random_indxs, self.actions[random_indxs]] = self.rewards[random_indxs] + \
+                    self.gamma * np.max(self.model_target.predict(self.states[random_indxs + 1], verbose=0), axis=1) * \
+                    (1 - self.terms[random_indxs + 1])
 
-        self.td_targets[random_indxs] *= np.expand_dims(1 - self.terms[random_indxs], axis=1)
+            self.td_targets[random_indxs] *= np.expand_dims(1 - self.terms[random_indxs], axis=1)
 
-        # Q - learning.
-        self.model.fit(self.states[random_indxs], self.td_targets[random_indxs], batch_size=self.batch_size,
-                                                                                                        verbose=0)
-        # Update the target model.
-        if self.step_counter % self.model_target_update_step == 0:
-            self.model_target.set_weights(self.model.get_weights())
+            # Q - learning.
+            self.model.fit(self.states[random_indxs], self.td_targets[random_indxs],
+                           batch_size=self.batch_size, verbose=0)
+
+            # Update the target model.
+            if self.step_counter % self.model_target_update_step == 0:
+                self.model_target.set_weights(self.model.get_weights())

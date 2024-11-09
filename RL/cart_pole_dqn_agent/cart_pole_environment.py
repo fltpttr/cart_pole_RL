@@ -102,7 +102,7 @@ class CartPole:
             term = False
         return reward, term
 
-    def render(self, step_counter, epsilon, max_step):
+    def render(self, step_counter, epsilon):
         if self.is_render:
             self.sc.fill((255, 255, 255))
             pygame.draw.line(self.sc, (0, 0, 0), (0, 300), (self.w, 300), 1)
@@ -114,7 +114,6 @@ class CartPole:
             self.sc.blit(self.font.render('Max score: ' + str(self.max_score), True, (255, 0, 0)), (15, 40))
             self.sc.blit(self.font.render('Step counter: ' + str(step_counter), True, (0, 0, 255)), (15, 65))
             self.sc.blit(self.font.render('Epsilon: ' + str(epsilon)[:5], True, (0, 255, 0)), (15, 90))
-            self.sc.blit(self.font.render('Max step: ' + str(max_step), True, (255, 0, 0)), (15, 115))
 
             pygame.display.update()
             self.clock.tick(self.fps)
